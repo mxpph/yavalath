@@ -141,14 +141,14 @@ def main():
     # Game loop
     while run:
         clock.tick(FPS)
-        # Get mouse position and the coords of the currently selected hex.
-        mousex, mousey = pygame.mouse.get_pos()
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
 
             if event.type == pygame.MOUSEBUTTONDOWN:
+                # Get mouse position and the coords of the currently selected hex.
+                mousex, mousey = pygame.mouse.get_pos()
                 curq, curr = get_currently_selected_hex(mousex, mousey)
                 if (curq, curr) != (None, None) and axialMap[curr + 4, curq + 4].player == 2:
                         # Odd turn no. = green, even = red
