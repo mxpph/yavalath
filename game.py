@@ -6,6 +6,12 @@ WIN = pygame.display.set_mode((WIN_WIDTH, WIN_HEIGHT))
 pygame.display.set_caption("Yavalath")
 
 FPS = 30
+# Hexagon direction vectors
+LINES = [
+        [(+1, 0, -1), (-1, 0, +1)],
+        [(0, -1, +1), (0, +1, -1)],
+        [(-1, +1, 0), (+1, -1, 0)]
+        ]
 
 class Hexagon:
     hexSprite = pygame.image.load('hex.png')
@@ -24,7 +30,7 @@ class Hexagon:
         self.player = 2
 
     def draw(self):
-        # Draw from the center
+        # Draw from the center of sprite
         coords = (self.xpos - self.inradius, self.ypos - self.circumradius)
         WIN.blit(self.hexSprite, coords)
 
@@ -33,7 +39,12 @@ class Hexagon:
         elif self.player == 0:
             WIN.blit(self.p2sprite, coords)
 
-def getCurrentlySelectedHex(x, y):
+def check_bounds(q, r):
+    # Returns true if valid coordinate.
+    s = -q - r
+    return not (abs(q) > 4 or abs(r) > 4 or abs(s) > 4)
+
+def get_currently_selected_hex(x, y):
     x -= WIN_WIDTH / 2
     y -= WIN_HEIGHT / 2
     fracq = (np.sqrt(3)/3 * x - 1/3 * y) / Hexagon.circumradius
@@ -53,27 +64,49 @@ def getCurrentlySelectedHex(x, y):
     else:
         s = -q-r
 
-    if abs(q) > 4 or abs(r) > 4 or (q + r <= -5) or (q + r >= 5):
-        q = None
-        r = None
+    if abs(q) > 4 or abs(r) > 4 or abs(s) > 4:
+        return (None, None)
     else:
-        q = int(q)
-        r = int(r)
+        return (int(q), int(r))
 
-    return (q,r)
-
-def checkGameEnd(coords, turn):
-    if turn < 5:
+def sum_hexes_in_line(map, q, r, turn, vec):
+    if (check_bounds(q + vec[0], r + vec[1])
+        and map[r + vec[1] + 4, q + vec[0] + 4].player == turn & 1):
+        # Recursive call
+        return 1 + sum_hexes_in_line(map, q + vec[0], r + vec[1], turn, vec)
+    else:
         return 0
 
-    # TODO Add line checker
+def check_game_end(map, q, r, turn):
+    if turn < 5:
+        # Game cannot end before turn 5
+        return None
 
+    sums = []
+    i = 0
+    for line in LINES:
+        sums.append(0)
+        for vec in line:
+            sums[i] = sums[i] + sum_hexes_in_line(map, q, r, turn, vec)
+
+        sums[i] += 1
+        i += 1
+
+    if any(sum >= 4 for sum in sums):
+        # Game has ended with win for last player
+        return True
+    elif any(sum == 3 for sum in sums):
+        # Game has ended with loss for last player
+        return False
+    else:
+        # Game continues
+        return None
 
 def draw_window(map):
     WIN.fill((0,0,0))
     for subarr in map:
         for hex in subarr:
-            if type(hex) is Hexagon:
+            if isinstance(hex, Hexagon):
                 hex.draw()
     pygame.display.flip()
 
@@ -105,32 +138,32 @@ def main():
                 axialMap[r, q] = None
 
     turn = 1
-
     # Game loop
     while run:
         clock.tick(FPS)
         # Get mouse position and the coords of the currently selected hex.
         mousex, mousey = pygame.mouse.get_pos()
 
-
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
 
             if event.type == pygame.MOUSEBUTTONDOWN:
-                curq, curr = getCurrentlySelectedHex(mousex, mousey)
+                curq, curr = get_currently_selected_hex(mousex, mousey)
                 if (curq, curr) != (None, None) and axialMap[curr + 4, curq + 4].player == 2:
-                        # Turn odd: p1, even: p2
+                        # Odd turn no. = green, even = red
                         axialMap[curr + 4, curq + 4].player = turn & 1
-                        print("Turn:", turn)
-                        turn += 1
 
-                        # TODO Check for lines here
+                        status = check_game_end(axialMap, curq, curr, turn)
+                        if status is not None:
+                            print("Game over!", "Red wins!" if (status ^ (turn & 1)) else "Green wins!")
+                            run = False
+                        else:
+                            turn += 1
 
         draw_window(axialMap)
 
     pygame.quit()
-
 
 if __name__ == "__main__":
     main()
