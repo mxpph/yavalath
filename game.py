@@ -14,6 +14,7 @@ LINES = [
         ]
 
 class Hexagon:
+    """Contains information about each """
     hexSprite = pygame.image.load('hex.png')
     p1sprite = pygame.image.load('p1.png')
     p2sprite = pygame.image.load('p2.png')
@@ -21,16 +22,17 @@ class Hexagon:
     circumradius = hexSprite.get_height() // 2
 
     def __init__(self, r, q):
+        """Hexagon constructor method"""
         self.r = r
         self.q = q
 
         self.xpos = WIN_WIDTH / 2 + self.circumradius * (np.sqrt(3) * self.q + np.sqrt(3)/2 * self.r)
         self.ypos = WIN_HEIGHT / 2 + self.circumradius * 3/2 * self.r
 
-        self.player = 2
+        self.player = 2 # Empty
 
     def draw(self):
-        # Draw from the center of sprite
+        """Draws the hexagon from the center of sprite"""
         coords = (self.xpos - self.inradius, self.ypos - self.circumradius)
         WIN.blit(self.hexSprite, coords)
 
@@ -40,11 +42,13 @@ class Hexagon:
             WIN.blit(self.p2sprite, coords)
 
 def check_bounds(q, r):
-    # Returns true if valid coordinate.
+    """Returns true if the input is a valid coordinate."""
     s = -q - r
     return not (abs(q) > 4 or abs(r) > 4 or abs(s) > 4)
 
 def get_currently_selected_hex(x, y):
+    """Outputs the hexagon coordinate that is currently
+    selected given an input of x,y pixel coordinates"""
     x -= WIN_WIDTH / 2
     y -= WIN_HEIGHT / 2
     fracq = (np.sqrt(3)/3 * x - 1/3 * y) / Hexagon.circumradius
@@ -70,6 +74,8 @@ def get_currently_selected_hex(x, y):
         return (int(q), int(r))
 
 def sum_hexes_in_line(map, q, r, turn, vec):
+    """Recursively counts the amount of hexes
+    of the same color in a given direction"""
     if (check_bounds(q + vec[0], r + vec[1])
         and map[r + vec[1] + 4, q + vec[0] + 4].player == turn & 1):
         # Recursive call
@@ -78,6 +84,8 @@ def sum_hexes_in_line(map, q, r, turn, vec):
         return 0
 
 def check_game_end(map, q, r, turn):
+    """Returns true if win on last round,
+    false if loss, and None otherwise."""
     if turn < 5:
         # Game cannot end before turn 5
         return None
@@ -85,11 +93,10 @@ def check_game_end(map, q, r, turn):
     sums = []
     i = 0
     for line in LINES:
-        sums.append(0)
+        sums.append(1)
         for vec in line:
             sums[i] = sums[i] + sum_hexes_in_line(map, q, r, turn, vec)
 
-        sums[i] += 1
         i += 1
 
     if any(sum >= 4 for sum in sums):
@@ -103,6 +110,7 @@ def check_game_end(map, q, r, turn):
         return None
 
 def draw_window(map):
+    """Draws the game to the window"""
     WIN.fill((0,0,0))
     for subarr in map:
         for hex in subarr:
@@ -111,6 +119,7 @@ def draw_window(map):
     pygame.display.flip()
 
 def main():
+    """The main function which runs the game logic"""
     run = True
     clock = pygame.time.Clock()
 
